@@ -50,6 +50,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.lifecycle:lifecycle-service:2.6.2")
     val kotlin_version = "1.9.20"
     val serialization_version = "1.6.0"
     val ktor_version = "2.3.6"
@@ -76,4 +77,12 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serialization_version")
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-websockets:$ktor_version")
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-websockets:$ktor_version")
+    implementation("io.ktor:ktor-client-serialization:$serialization_version")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
 }

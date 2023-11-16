@@ -3,9 +3,7 @@ package com.example.deviceinfo
 import android.content.Context
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
-import io.ktor.server.application.host
 import io.ktor.server.application.install
-import io.ktor.server.application.port
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.response.*
@@ -25,10 +23,12 @@ import io.ktor.server.response.respond
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import io.ktor.http.*
-import java.net.ServerSocket
+import io.ktor.serialization.kotlinx.*
+import io.ktor.server.websocket.sendSerialized
+import kotlinx.serialization.json.*
+
 
 fun Application.module(context: Context) {
 
@@ -45,6 +45,7 @@ fun Application.module(context: Context) {
         timeout = Duration.ofSeconds(15)
         maxFrameSize = Long.MAX_VALUE
         masking = false
+        contentConverter = KotlinxWebsocketSerializationConverter(Json)
     }
 
     install(ContentNegotiation) {
@@ -53,6 +54,7 @@ fun Application.module(context: Context) {
             isLenient = true
         })
     }
+
 
     routing {
         get("/") {
@@ -67,8 +69,8 @@ fun Application.module(context: Context) {
             try {
                 val deviceId = getDeviceId()
                 devices.add(Device(deviceID = deviceId))
-                call.respondText { deviceId }
-//                call.respond(Device(deviceID = deviceId))
+//                call.respondText { deviceId }
+                call.respond(Device(deviceID = deviceId))
             } catch (e: Exception) {
                 // Log the exception for debugging purposes
                 e.printStackTrace()
@@ -79,14 +81,19 @@ fun Application.module(context: Context) {
         }
 
         webSocket("/echo") {
-            send(Frame.Text("Please enter your name"))
+            val deviceId = getDeviceId()
+
+            // Convert the device ID to JSON format
+
+            send(Frame.Text(deviceId))
+
             for (frame in incoming) {
                 frame as? Frame.Text ?: continue
                 val receivedText = frame.readText()
                 if (receivedText.equals("bye", ignoreCase = true)) {
                     close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
                 } else {
-                    send(Frame.Text("Hi, $receivedText!"))
+                    // You can choose to send something else here if needed
                 }
             }
         }
@@ -95,87 +102,13 @@ fun Application.module(context: Context) {
 fun main() {
 }
 }
-//
-//
-//
-//
-//class WebSocketServer(context: Context) {
-//
-//
-//
-//    private fun isPortInUse(port: Int): Boolean {
-//        return try {
-//            ServerSocket(port).use { it.reuseAddress = true }
-//            false
-//        } catch (e: Exception) {
-//            true
-//        }
-//    }
-//    private val port = 8083 // Specify your desired port
-//
-//    private val socketServer = embeddedServer(CIO, host = "127.0.0.1", port = port, module = { module(context = context) })
-//
-//    fun wake(): String {
-//
-//        if (isPortInUse(port)) {
-//            // Port is already in use, attempt to terminate the process using that port
-//            try {
-//                val process = Runtime.getRuntime().exec("fuser -k $port/tcp")
-//                val exitCode = process.waitFor()
-//                if (exitCode == 0) {
-//                    println("Process using port $port terminated.")
-//                } else {
-//                    println("Failed to terminate process using port $port.")
-//                }
-//            } catch (e: Exception) {
-//                println("Error terminating process using port $port: ${e.message}")
-//            }
-//        }
-//
-//        // Start the new server
-//        try {
-//
-//            val status = socketServer?.start(wait = false)
-//            if (status != null) {
-//                val host = status.environment.config.host
-//                val port = status.environment.config.port
-//                return "Server started on $host:$port"
-//            }
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//            return "Failed to start server: ${e.message}"
-//        }
-//
-//        return "Unknown error"
-//    }
-//
-//
-////    fun wake(): String {
-////        try {
-////            val status = socketServer.start(wait = false)
-////            val host = status.environment.config.host
-////            val port = status.environment.config.port
-////            return "Server started on $host:$port"
-////        } catch (e: Exception) {
-////            e.printStackTrace()
-////            return "Failed to start server: ${e.message}"
-////        }
-////    }
-//
-//
-//    fun sleep() {
-//        socketServer.stop()
-//    }
-//
-//
-//}
 
 
 
 
 class WebSocketServer(context: Context) {
 
-    private val socketServer = embeddedServer(CIO, host = "0.0.0.0", port = 8083, module = { module(context = context) })
+    private val socketServer = embeddedServer(CIO, host = "127.0.0.1", port = 8083, module = { module(context = context) })
 
     fun startServer() {
         try {
@@ -186,6 +119,6 @@ class WebSocketServer(context: Context) {
     }
 
     fun stopServer() {
-        socketServer.stop(1000, 1000)
+        socketServer.stop(1000, 10000)
     }
 }
